@@ -478,6 +478,38 @@ def plot_xy_density(gas, component=0, normalize=True):
     plt.tight_layout()
     plt.show()
 
+def plot_xz_density(gas, component=0, normalize=True):
+    """
+    Plot central z-slice density in the xy plane.
+    """
+    base = gas.gas1
+
+    psi = gas.psi[component]
+    n = torch.abs(psi) ** 2
+
+    iy0 = torch.argmin(torch.abs(base.y)).item()
+
+    img = n[iy0, :, :].detach().cpu().numpy()
+
+    if normalize:
+        img = img / np.max(img)
+
+    extent = [
+        base.x[0].item() * base.adim_length * 1e6,
+        base.x[-1].item() * base.adim_length * 1e6,
+        base.z[0].item() * base.adim_length * 1e6,
+        base.z[-1].item() * base.adim_length * 1e6,
+    ]
+
+    plt.figure(figsize=(5.5, 5))
+    plt.imshow(img, origin="lower", extent=extent, aspect="equal")
+    plt.xlabel(r"$x$ [$\mu$m]")
+    plt.ylabel(r"$z$ [$\mu$m]")
+    plt.title(f"Component {component + 1}: central xy density")
+    plt.colorbar(label="normalized density" if normalize else r"$|\psi|^2$")
+    plt.tight_layout()
+    plt.show()
+
 
 from torchgpe.utils.callbacks import Callback
 
@@ -716,8 +748,8 @@ def print_beta_and_D_from_stark_shift(
 
     beta = stark_energy_J / Delta_energy_J
 
-    D = n2D_m2 * d_Cm**2 / (
-        3.0 * const.epsilon_0 * Delta_energy_J * l_z
+    D = N_total * d_Cm**2 / (
+        (const.hbar * omega_z_rad_s) * l_z ** 3
     )
 
     print("Dimensionless parameters")

@@ -856,6 +856,39 @@ def print_imaginary_time_stiffness(gas, trap, ddi, single_molecule, time_step):
     print(f"H eigenvalue spread       = {H_span:.6e}")
     print(f"tau * H eigenvalue spread = {tau * H_span:.6e}")
 
+def rms_rho_over_ellz(gas, ellz=None, component=None):
+    """
+    Returns sqrt(<rho^2>) / ellz.
+
+    component=None: total two-component density
+    component=0 or 1: width of one component only
+    """
+    psi = gas.psi
+    dV = gas.dx * gas.dy * gas.dz
+
+    if component is None:
+        density = torch.abs(psi[0])**2 + torch.abs(psi[1])**2
+    else:
+        density = torch.abs(psi[component])**2
+
+    norm = torch.sum(density) * dV
+
+    rho2 = gas.X**2 + gas.Y**2
+    mean_rho2 = torch.sum(density * rho2) * dV / norm
+
+    rms_rho_dimensionless = torch.sqrt(mean_rho2.real)
+
+    # gas.X and gas.Y are in units of gas.adim_length.
+    # If adim_length = ellz, this conversion factor is 1.
+    if ellz is None:
+        return rms_rho_dimensionless.detach().cpu().item()
+    else:
+        return (
+            rms_rho_dimensionless
+            * gas.adim_length
+            / ellz
+        ).detach().cpu().item()
+    
 if __name__ == "__main__":
     torch.set_default_dtype(torch.double)
 
